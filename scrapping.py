@@ -5,14 +5,22 @@ import time
 
 # Função para extrair as cidades da URL fornecida
 def pegar_nomes_cidades():
-    url = 'https://municipios.rankingdecompetitividade.org.br/'
-    response = requests.get(url)
+    # Isso deve ser descomentado após o desenvolvimento
+    # url = 'https://municipios.rankingdecompetitividade.org.br/'
+    # response = requests.get(url)
+
+    # Isso deve ser apagado após o desenvolvimento
+    # with open('rankingcompetitividade.html', 'wb') as file:
+    #     file.write(response.content)
     
-    if response.status_code != 200:
-        print(f"Erro ao acessar a página. Status code: {response.status_code}")
-        return []
+    # Isso deve ser descomentado após o desenvolvimento
+    # if response.status_code != 200:
+    #     print(f"Erro ao acessar a página. Status code: {response.status_code}")
+    #     return []
     
-    soup = BeautifulSoup(response.text, 'html.parser')
+    # Isso deve ser modificado após o desenvolvimento
+    with open('rankingcompetitividade.html', 'rb') as file:
+        soup = BeautifulSoup(file.read(), 'html.parser')
     
     # Aqui está pegando todas cidades da página, mesmo fora do ranking
     th_elements = soup.find_all('th', class_='indicador')
