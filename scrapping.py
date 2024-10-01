@@ -1,10 +1,41 @@
 import requests
 from bs4 import BeautifulSoup
-from geopy.geocoders import Nominatim
 import time
 
+# Número de escolas por cidade
+# Rio das Ostras - RJ -> 107
+# Paranaguá - PR -> 138
+# Saquarema - RJ -> 94
+# Votorantim - SP -> 86
+# Catalão - GO -> 81
+# Jandira - SP -> 93
+# Maricá - RJ -> 115
+# São João del Rei - MG -> 106
+# Paracatu - MG  -> 81
+# Macaé - RJ -> 246
+
+# TOTAL: 1147
+
+# Número de escolas por cidade
+# Rio das Ostras - RJ -> 101
+# Paranaguá - PR -> 133
+# Saquarema - RJ -> 88
+# Votorantim - SP -> 88
+# Catalão - GO -> 70
+# Jandira - SP -> 81
+# Maricá - RJ -> 107
+# São João del Rei - MG -> 65
+# Paracatu - MG  -> 68
+# Macaé - RJ -> 195
+
+# TOTAL: 996
+
+# URLs: 
+# Para acessar quais cidades vamos considerar na busca: https://municipios.rankingdecompetitividade.org.br/
+# Para acessar a lista de escolas na cidade: https://escolas.com.br/brasil/estado/cidade (tem paginação)
+
 # Função para extrair as cidades da URL fornecida
-def pegar_nomes_cidades():
+def get_cities() -> list[tuple[str, str]]:
     # Isso deve ser descomentado após o desenvolvimento
     # url = 'https://municipios.rankingdecompetitividade.org.br/'
     # response = requests.get(url)
@@ -12,92 +43,53 @@ def pegar_nomes_cidades():
     # Isso deve ser apagado após o desenvolvimento
     # with open('rankingcompetitividade.html', 'wb') as file:
     #     file.write(response.content)
-    
+
     # Isso deve ser descomentado após o desenvolvimento
     # if response.status_code != 200:
     #     print(f"Erro ao acessar a página. Status code: {response.status_code}")
     #     return []
-    
+
     # Isso deve ser modificado após o desenvolvimento
     with open('rankingcompetitividade.html', 'rb') as file:
         soup = BeautifulSoup(file.read(), 'html.parser')
-    
-    # Aqui está pegando todas cidades da página, mesmo fora do ranking
-    th_elements = soup.find_all('th', class_='indicador')
-    
-    lista_cidades = []
-    
-    for th in th_elements:
-        a_tag = th.find('a')
-        if a_tag:
-            cidade_text = a_tag.text.strip()
-            lista_cidades.append(cidade_text)
-    
-    return lista_cidades[:1]
 
-# Função para extrair cidade e estado
-def extrair_cidade_estado(texto):
-    partes = texto.split('. ')[1].split(' - ')
-    cidade = partes[0].strip()
-    estado = partes[1].strip()
-    return cidade, estado
+    section = soup.find('h2', string="Maiores Variações").find_parent('section')
+    rows = section.find_all('tr')
 
-# Função para obter latitude e longitude usando geopy
-def pegar_coordenadas(cidade):
-    geolocator = Nominatim(user_agent="geoapiExercises")
-    location = geolocator.geocode(cidade + ", Brasil")
-    
-    if location:
-        return (location.latitude, location.longitude)
-    else:
-        return None
+    cities: list[tuple[str, str]] = []
+    for row in rows[1:]:  # Skip the header row
+        city = row.find('a').text.strip()  # Estrutura do texto -> 2. Paranaguá - PR
+        city, state = city.split('. ')[1].split(' - ')
+        cities.append((city, state))
 
-# Função para obter a previsão do tempo com base na latitude e longitude
-def pegar_previsao_tempo(lat, lon):
-    url = f"https://weather.com/weather/hourbyhour/l/{lat},{lon}"
-    
-    # url = 'https://weather.com/weather/hourbyhour/l/-23.5505,-46.6333'
+    return cities
 
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        print(f"Erro ao acessar a página de previsão do tempo. Status code: {response.status_code}")
-        return None
-    
-    soup = BeautifulSoup(response.text, "html.parser")
-    
-    previsoes = soup.find_all('span', class_='DetailsSummary--tempValue--jEiXE')
-    
-    if previsoes:
-        return [prev.text.strip() for prev in previsoes]
-    else:
-        return None
+
+def create_request_orders_for_cities(cities: list[tuple[str, str]]) -> str:
+    # TODO: Criar RequestOrders para as cidades
+    ...
+
+def get_request_orders_for_schools(cities: list[tuple[str, str]]) -> str:
+    # TODO: criar RequestOrders para as escolas
+    url = 'https://escolas.com.br/brasil/sc/florianopolis'
+    # response = requests.get(url)
+
+    # with open('floripa-outro-site.html', 'wb') as file:
+    #     file.write(response.content)
+
+    with open('floripa-escolas-com.html', 'rb') as file:
+        soup = BeautifulSoup(file.read(), 'html.parser')
+
 
 # Main - Coordenando os passos
 def main():
-    cidades = pegar_nomes_cidades()
+    cidades = get_cities()
     print(cidades)
-    
+    create_request_orders_for_cities(cidades)
+
     if not cidades:
         print("Nenhuma cidade foi encontrada.")
         return
-     
-    for cidade_raw in cidades:
-        cidade, estado = extrair_cidade_estado(cidade_raw)
-        print(f"\nCidade: {cidade}, Estado: {estado}")
-        
-        coords = pegar_coordenadas(cidade)
-        
-        if not coords:
-            print(f"Não foi possível obter as coordenadas para {cidade}.")
-            continue
-        
-        print(f"Coordenadas de {cidade}: {coords}")
-        
-        previsao = pegar_previsao_tempo(coords[0], coords[1])
-        print(previsao)
-   
-        time.sleep(2)
-
+ 
 if __name__ == "__main__":
     main()
