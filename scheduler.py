@@ -1,7 +1,8 @@
+"""Módulo com a definição do escalonador de tarefas do Crawler"""
+
 from dataclasses import dataclass
-from .downloader import Downloader
-from typing import Callable
 from queue import Queue
+from typing import Callable
 
 
 @dataclass
@@ -15,12 +16,16 @@ class Scheduler:
     """Escalonador de requisições"""
     def __init__(self):
         self.__queue: Queue[RequestOrder] = Queue()
-        self.__downloader: Downloader = Downloader()
 
     def queue_request(self, order: RequestOrder):
         """Enfileira um pedido de requisição"""
         self.__queue.put(order)
 
-    def download(self, order: RequestOrder) -> bytes:
-        """Faz o download de alguma URL chamando o Downloader"""
-        return self.__downloader.download(order.url)
+    def __process_request_order(self):
+        request_order = self.__queue.get()
+        request_order.action(self, request_order.url)
+
+    def run(self):
+        """Executa o loop até que tenham RequestOrderes a serem processadas"""
+        while not self.__queue.empty():
+            self.__process_request_order()
