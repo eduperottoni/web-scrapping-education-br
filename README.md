@@ -24,5 +24,5 @@ pip install -r requirements.txt
 4. Execute o _crawler_:
 
 ```
-python run.py
+python scrapping.py
 ```

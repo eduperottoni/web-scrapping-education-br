@@ -9,6 +9,11 @@ from bs4 import BeautifulSoup
 
 from scheduler import RequestOrder, Scheduler
 
+# TODO: Fazer o JSON aninhado com informações do Ranking de competitividade
+# TODO: Tirar a flag `possui_eja` (redundante)
+# TODO: Fazer gráficos sobre os dados
+# TODO: Passar pro chatGPT para que ele relacione os dados/ definir aplicação que usaria esses dados
+
 # Número de escolas por cidade
 # Rio das Ostras - RJ -> 107
 # Paranaguá - PR -> 138

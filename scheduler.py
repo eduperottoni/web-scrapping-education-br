@@ -28,4 +28,5 @@ class Scheduler:
     def run(self):
         """Executa o loop até que tenham RequestOrderes a serem processadas"""
         while not self.__queue.empty():
+            print(self.__queue.qsize())
             self.__process_request_order()
