@@ -81,12 +81,50 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
         city = row.find('a').text.strip()  # Estrutura do texto -> 2. Paranaguá - PR
         city, state = city.split('. ')[1].split(' - ')
 
+        ibge_base_url = "https://cidades.ibge.gov.br/brasil/"
+        city_url = f'{ibge_base_url}/{state.lower()}/{city.lower().replace(" ", "-")}/panorama'
+
+        new_request_order = RequestOrder(city_url, get_information_about_cit_on_ibge)
+        scheduler.queue_request(new_request_order)
+
         base_url = 'https://escolas.com.br/brasil'
         city = remove_accents(city)
         city_url = f'{base_url}/{state.lower()}/{city.lower().replace(" ", "-")}'
 
         new_request_order = RequestOrder(city_url, make_schools_request_orders)
         scheduler.queue_request(new_request_order)
+
+
+def get_information_about_cit_on_ibge(scheduler: Scheduler, url: str) -> None:
+    
+    response = requests.get(url, timeout=500)
+    # soup = BeautifulSoup(response.content, 'html.parser')
+
+    # if response.status_code != 200:
+    #     print(f"Erro ao acessar a página. Status code: {response.status_code}")
+    #     break
+
+    # soup = BeautifulSoup(response.content, 'html.parser')
+
+    # escolarizacao_tag = soup.find("td", class_="lista__nome", string="Taxa de escolarização de 6 a 14 anos de idade")
+    # if escolarizacao_tag:
+    #     taxa_escolarizacao_valor = escolarizacao_tag.find_next_sibling("td", class_="lista__valor")
+    #     taxa_escolarizacao = taxa_escolarizacao_valor.find("span").text if taxa_escolarizacao_valor else "N/A"
+    #     print("Taxa de escolarização:", taxa_escolarizacao + "%")
+
+
+    # taxa_escolarizacao = soup.find('span', class_='escolarizacao') 
+    # ideb_anos_iniciais = soup.find('span', class_='ideb')
+    # ideb_anos_finais = soup.find('span', class_='ideb')
+
+    # city_education_info = {
+    #     "url": url,
+    #     "taxa_escolarizacao": taxa_escolarizacao,
+    #     "ideb_anos_iniciais": ideb_anos_iniciais,
+    #     "ideb_anos_finais": ideb_anos_finais,
+    # }
+
+    # JSON.append({"cidade": city_education_info, "escolas": []})
 
 
 def make_schools_request_orders(scheduler: Scheduler, url: str) -> None:
@@ -161,8 +199,6 @@ def get_information_about_school(scheduler: Scheduler, url: str) -> None:
     # Coleta o nível de educação
     levels_ed = soup.find_all('span', class_='badge-dark')
     levels_education = [span.text.strip() for span in levels_ed] if levels_ed else 'Não informado'
-    # Verifica se possui EJA
-    has_eja = any("EJA" in level for level in levels_education)
     # Coleta o endereço
     ad = soup.find('a', {'data-link': 'single-address-neighborhood'})
     address = ad.find_parent('p') if ad else None
@@ -173,8 +209,8 @@ def get_information_about_school(scheduler: Scheduler, url: str) -> None:
         "nome": name_school,
         "level_adm": level_adm,
         "niveis_educacao": levels_education,
-        "possui_eja": has_eja,
-        "endereco": address
+        "endereco": address,
+        "url": url
     }
 
     SCHOOLS += 1
