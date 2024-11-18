@@ -1,32 +1,8 @@
 [
-    {
-        "Rio das Ostras (RJ)": {}
-    },
-    {
-        "Paranaguá (PR)": {}
-    },
-    {
-        "Saquarema (RJ)": {}
-    },
-    {
-        "Votorantim (SP)": {}
-    },
-    {
-        "Catalão (GO)": {}
-    },
-    {
-        "Jandira (SP)": {}
-    },
-    {
-        "Maricá (RJ)": {}
-    },
-    {
-        "São João del Rei (MG)": {}
-    },
-    {
-        "Paracatu (MG)": {}
-    },
-    {
-        "Macaé (RJ)": {}
+  {
+    "Rio das Ostras (RJ)": {
+      "taxa_escolarizacao": "98,2%",
+      "populacao": "156.491pessoas"
     }
+  }
 ]

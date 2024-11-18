@@ -85,30 +85,16 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
     section = soup.find('h2', string="Maiores Variações").find_parent('section')
     rows = section.find_all('tr')
 
-    with open('cidades.json', "w", encoding="utf-8") as f:
-        json.dump([], f, ensure_ascii=False, indent=4)
-
     for row in rows[1:]:
         city = row.find('a').text.strip()  # Estrutura do texto -> 2. Paranaguá - PR
         city, state = city.split('. ')[1].split(' - ')
 
         city_string = f"{city} ({state})"
 
-        with open('cidades.json', "r", encoding="utf-8") as f:
-            json_data = json.load(f)
-    
-            # Append the new city
-            json_data.append({city_string: {}})
-        
-        # Write back to the file
-        with open('cidades.json', "w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=4)
-            print(f"City '{city_string}' added!")
+        ibge_base_url = "https://cidades.ibge.gov.br/brasil"
+        city_url = f'{ibge_base_url}/{state.lower()}/{remove_accents(city.lower().replace(" ", "-"))}/panorama'
 
-        ibge_base_url = "https://cidades.ibge.gov.br/brasil/"
-        city_url = f'{ibge_base_url}/{state.lower()}/{city.lower().replace(" ", "-")}/panorama'
-
-        new_request_order = RequestOrder(city_url, get_information_about_city_on_ibge)
+        new_request_order = RequestOrder(city_url, get_information_about_city_on_ibge, city_string)
         scheduler.queue_request(new_request_order)
 
         # base_url = 'https://escolas.com.br/brasil'
@@ -119,38 +105,48 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
         # scheduler.queue_request(new_request_order)
 
 
-def get_information_about_city_on_ibge(scheduler: Scheduler, url: str) -> None:
+def get_information_about_city_on_ibge(scheduler: Scheduler, url: str, city_field: str = "") -> None:
     indicadores = {"taxa_escolarizacao":"Taxa de escolarização de 6 a 14 anos de idade",
                    "populacao":"População no último censo"}
+    print(f'Processando url: {url}')
+    
     try:
         DRIVER.get(url)
         time.sleep(5)
         page_content = DRIVER.page_source
+        with open('teste.html', "w", encoding="utf-8") as f:
+            f.write(page_content)
+        # assert "Taxa de escolarização de 6 a 14 anos de idade" in page_content
     except Exception as e:
         print(f"Erro ao acessar a página {url}: {e}")
+    finally:
+        DRIVER.quit()
 
     soup = BeautifulSoup(page_content, 'html.parser')
 
-    new_json = {}
+    new_json = {city_field: {}}
     for field, indicador in indicadores.items():
-        new_json[field] = 'Não informado'
-        data = soup.find('div', class_='indicador__nome', string=lambda text: indicador in text)
+        new_json[city_field][field] = 'Não informado'
+        data = soup.find(lambda tag:tag.name=='div' and 'indicador__nome' in tag.get('class', []) and indicador in tag.text)
+        print(f'Achei com {indicador}: {data}')
         if indicador:
-            new_json[field] = data
+            parent_div = data.find_parent('div')
+            data = parent_div.find('div', class_='indicador__valor').get_text(strip=True)
+            print(f'Indicador encontrado: {data}')
+            new_json[city_field][field] = data
         else:
             print(f"Erro ao acessar o indicador {indicador}")
-
 
     with open('cidades.json', "r", encoding="utf-8") as f:
             json_data = json.load(f)
     
             # Append the new city
-            json_data.append({city_string: {}})
+            json_data.append(new_json)
         
-        # Write back to the file
-        with open('cidades.json', "w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=4)
-            print(f"City '{city_string}' added!")
+    # Write back to the file
+    with open('cidades.json', "w", encoding="utf-8") as f:
+        json.dump(json_data, f, ensure_ascii=False, indent=2)
+        print(f"City '{city_field}' added!")
 
     # soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -268,9 +264,13 @@ def get_information_about_school(scheduler: Scheduler, url: str) -> None:
 
 def main():
     """Função principal"""
+
+    with open('cidades.json', "w", encoding="utf-8") as f:
+        json.dump([], f, ensure_ascii=False, indent=2)
+
     scheduler = Scheduler()
 
-    first_request_order = RequestOrder('https://municipios.rankingdecompetitividade.org.br', make_cities_request_orders)
+    first_request_order = RequestOrder('https://municipios.rankingdecompetitividade.org.br', action=make_cities_request_orders)
     scheduler.queue_request(first_request_order)
 
     scheduler.run()

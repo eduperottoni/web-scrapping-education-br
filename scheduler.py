@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from queue import Queue
-from typing import Callable
+from typing import Callable, Optional
 
 
 @dataclass
@@ -10,6 +10,7 @@ class RequestOrder:
     """Classe que abstrai um pedido de requisição"""
     url: str
     action: Callable
+    city_field: Optional[str] = ""
 
 
 class Scheduler:
@@ -23,7 +24,10 @@ class Scheduler:
 
     def __process_request_order(self):
         request_order = self.__queue.get()
-        request_order.action(self, request_order.url)
+        if request_order.city_field:
+            request_order.action(self, request_order.url, request_order.city_field)
+        else:
+            request_order.action(self, request_order.url)
 
     def run(self):
         """Executa o loop até que tenham RequestOrderes a serem processadas"""
