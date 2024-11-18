@@ -4,5 +4,59 @@
       "taxa_escolarizacao": "98,2%",
       "populacao": "156.491pessoas"
     }
+  },
+  {
+    "Paranaguá (PR)": {
+      "taxa_escolarizacao": "98%",
+      "populacao": "145.829pessoas"
+    }
+  },
+  {
+    "Saquarema (RJ)": {
+      "taxa_escolarizacao": "96,3%",
+      "populacao": "89.559pessoas"
+    }
+  },
+  {
+    "Votorantim (SP)": {
+      "taxa_escolarizacao": "97,8%",
+      "populacao": "127.923pessoas"
+    }
+  },
+  {
+    "Catalão (GO)": {
+      "taxa_escolarizacao": "97,1%",
+      "populacao": "114.427pessoas"
+    }
+  },
+  {
+    "Jandira (SP)": {
+      "taxa_escolarizacao": "96,9%",
+      "populacao": "118.045pessoas"
+    }
+  },
+  {
+    "Maricá (RJ)": {
+      "taxa_escolarizacao": "96,4%",
+      "populacao": "197.277pessoas"
+    }
+  },
+  {
+    "São João del Rei (MG)": {
+      "taxa_escolarizacao": "99,1%",
+      "populacao": "90.225pessoas"
+    }
+  },
+  {
+    "Paracatu (MG)": {
+      "taxa_escolarizacao": "97,1%",
+      "populacao": "94.023pessoas"
+    }
+  },
+  {
+    "Macaé (RJ)": {
+      "taxa_escolarizacao": "96,9%",
+      "populacao": "246.391pessoas"
+    }
   }
 ]

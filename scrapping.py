@@ -119,8 +119,6 @@ def get_information_about_city_on_ibge(scheduler: Scheduler, url: str, city_fiel
         # assert "Taxa de escolarização de 6 a 14 anos de idade" in page_content
     except Exception as e:
         print(f"Erro ao acessar a página {url}: {e}")
-    finally:
-        DRIVER.quit()
 
     soup = BeautifulSoup(page_content, 'html.parser')
 
