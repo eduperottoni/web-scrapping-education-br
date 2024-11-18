@@ -9,6 +9,14 @@ from bs4 import BeautifulSoup
 
 from scheduler import RequestOrder, Scheduler
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+DRIVER = webdriver.Chrome()
+
 # TODO: Fazer o JSON aninhado com informações do Ranking de competitividade
 # TODO: Tirar a flag `possui_eja` (redundante)
 # TODO: Fazer gráficos sobre os dados
@@ -77,32 +85,72 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
     section = soup.find('h2', string="Maiores Variações").find_parent('section')
     rows = section.find_all('tr')
 
+    with open('cidades.json', "w", encoding="utf-8") as f:
+        json.dump([], f, ensure_ascii=False, indent=4)
+
     for row in rows[1:]:
         city = row.find('a').text.strip()  # Estrutura do texto -> 2. Paranaguá - PR
         city, state = city.split('. ')[1].split(' - ')
 
+        city_string = f"{city} ({state})"
+
+        with open('cidades.json', "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+    
+            # Append the new city
+            json_data.append({city_string: {}})
+        
+        # Write back to the file
+        with open('cidades.json', "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=4)
+            print(f"City '{city_string}' added!")
+
         ibge_base_url = "https://cidades.ibge.gov.br/brasil/"
         city_url = f'{ibge_base_url}/{state.lower()}/{city.lower().replace(" ", "-")}/panorama'
 
-        new_request_order = RequestOrder(city_url, get_information_about_cit_on_ibge)
+        new_request_order = RequestOrder(city_url, get_information_about_city_on_ibge)
         scheduler.queue_request(new_request_order)
 
-        base_url = 'https://escolas.com.br/brasil'
-        city = remove_accents(city)
-        city_url = f'{base_url}/{state.lower()}/{city.lower().replace(" ", "-")}'
+        # base_url = 'https://escolas.com.br/brasil'
+        # city = remove_accents(city)
+        # city_url = f'{base_url}/{state.lower()}/{city.lower().replace(" ", "-")}'
 
-        new_request_order = RequestOrder(city_url, make_schools_request_orders)
-        scheduler.queue_request(new_request_order)
+        # new_request_order = RequestOrder(city_url, make_schools_request_orders)
+        # scheduler.queue_request(new_request_order)
 
 
-def get_information_about_cit_on_ibge(scheduler: Scheduler, url: str) -> None:
+def get_information_about_city_on_ibge(scheduler: Scheduler, url: str) -> None:
+    indicadores = {"taxa_escolarizacao":"Taxa de escolarização de 6 a 14 anos de idade",
+                   "populacao":"População no último censo"}
+    try:
+        DRIVER.get(url)
+        time.sleep(5)
+        page_content = DRIVER.page_source
+    except Exception as e:
+        print(f"Erro ao acessar a página {url}: {e}")
+
+    soup = BeautifulSoup(page_content, 'html.parser')
+
+    new_json = {}
+    for field, indicador in indicadores.items():
+        new_json[field] = 'Não informado'
+        data = soup.find('div', class_='indicador__nome', string=lambda text: indicador in text)
+        if indicador:
+            new_json[field] = data
+        else:
+            print(f"Erro ao acessar o indicador {indicador}")
+
+
+    with open('cidades.json', "r", encoding="utf-8") as f:
+            json_data = json.load(f)
     
-    response = requests.get(url, timeout=500)
-    # soup = BeautifulSoup(response.content, 'html.parser')
-
-    # if response.status_code != 200:
-    #     print(f"Erro ao acessar a página. Status code: {response.status_code}")
-    #     break
+            # Append the new city
+            json_data.append({city_string: {}})
+        
+        # Write back to the file
+        with open('cidades.json', "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=4)
+            print(f"City '{city_string}' added!")
 
     # soup = BeautifulSoup(response.content, 'html.parser')
 
