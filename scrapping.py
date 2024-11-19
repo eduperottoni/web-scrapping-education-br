@@ -16,9 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 DRIVER = webdriver.Chrome()
+JSON_FILE_NAME = 'cidades.json'
 
-# TODO: Fazer o JSON aninhado com informações do Ranking de competitividade
-# TODO: Tirar a flag `possui_eja` (redundante)
 # TODO: Fazer gráficos sobre os dados
 # TODO: Passar pro chatGPT para que ele relacione os dados/ definir aplicação que usaria esses dados
 
@@ -53,6 +52,7 @@ DRIVER = webdriver.Chrome()
 # URLs: 
 # Para acessar quais cidades vamos considerar na busca: https://municipios.rankingdecompetitividade.org.br/
 # Para acessar a lista de escolas na cidade: https://escolas.com.br/brasil/estado/cidade (tem paginação)
+# Para coleta de dados do IBGE: https://cidades.ibge.gov.br/brasil/estado/nome-da-cidade/panorama
 
 
 JSON = []
@@ -76,7 +76,7 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
 
     Args:
         scheduler: ponteiro para o Scheduler
-        url: URL relativa ao ranking de competitividade
+        url: URL relativa a cidade
     """
     response = requests.get(url, timeout=500)
 
@@ -97,85 +97,76 @@ def make_cities_request_orders(scheduler: Scheduler, url: str) -> None:
         new_request_order = RequestOrder(city_url, get_information_about_city_on_ibge, city_string)
         scheduler.queue_request(new_request_order)
 
-        # base_url = 'https://escolas.com.br/brasil'
-        # city = remove_accents(city)
-        # city_url = f'{base_url}/{state.lower()}/{city.lower().replace(" ", "-")}'
+        base_url = 'https://escolas.com.br/brasil'
+        city = remove_accents(city)
+        city_url = f'{base_url}/{state.lower()}/{city.lower().replace(" ", "-")}'
 
-        # new_request_order = RequestOrder(city_url, make_schools_request_orders)
-        # scheduler.queue_request(new_request_order)
+        new_request_order = RequestOrder(city_url, make_schools_request_orders, city_string)
+        scheduler.queue_request(new_request_order)
 
 
 def get_information_about_city_on_ibge(scheduler: Scheduler, url: str, city_field: str = "") -> None:
+    """
+    Coleta as informações sobre as cidades no site de IBGE
+    Essa função utiliza um driver web (selenium) juntamente com BeautifulSoup para coleta de dados
+
+    Args:
+        scheduler: ponteiro para o Scheduler
+        url: URL relativa a cidade
+        city_field: Nome da cidade para que o JSON seja preenchido
+    """
     indicadores = {"taxa_escolarizacao":"Taxa de escolarização de 6 a 14 anos de idade",
                    "populacao":"População no último censo"}
+
     print(f'Processando url: {url}')
-    
+
     try:
         DRIVER.get(url)
         time.sleep(5)
         page_content = DRIVER.page_source
         with open('teste.html', "w", encoding="utf-8") as f:
             f.write(page_content)
-        # assert "Taxa de escolarização de 6 a 14 anos de idade" in page_content
     except Exception as e:
         print(f"Erro ao acessar a página {url}: {e}")
 
     soup = BeautifulSoup(page_content, 'html.parser')
 
-    new_json = {city_field: {}}
+    new_json = {"cidade": city_field,
+                "escolas": [],  # Já preparamos o campo de lista de escolas
+                "dados_ibge": {
+                    "url": url
+                }}
     for field, indicador in indicadores.items():
-        new_json[city_field][field] = 'Não informado'
+        new_json["dados_ibge"][field] = 'Não informado'
         data = soup.find(lambda tag:tag.name=='div' and 'indicador__nome' in tag.get('class', []) and indicador in tag.text)
-        print(f'Achei com {indicador}: {data}')
         if indicador:
             parent_div = data.find_parent('div')
-            data = parent_div.find('div', class_='indicador__valor').get_text(strip=True)
+            data = parent_div.find('div', class_='indicador__valor').get_text(strip=False)
+            data = data.split()[0].replace('.', '')  # Tiramos o texto depois do dado 
             print(f'Indicador encontrado: {data}')
-            new_json[city_field][field] = data
+            new_json["dados_ibge"][field] = data
         else:
             print(f"Erro ao acessar o indicador {indicador}")
 
-    with open('cidades.json', "r", encoding="utf-8") as f:
-            json_data = json.load(f)
-    
-            # Append the new city
-            json_data.append(new_json)
-        
+    with open(JSON_FILE_NAME, "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+        # Append the new city
+        json_data.append(new_json)
+
     # Write back to the file
-    with open('cidades.json', "w", encoding="utf-8") as f:
+    with open(JSON_FILE_NAME, "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=2)
         print(f"City '{city_field}' added!")
 
-    # soup = BeautifulSoup(response.content, 'html.parser')
 
-    # escolarizacao_tag = soup.find("td", class_="lista__nome", string="Taxa de escolarização de 6 a 14 anos de idade")
-    # if escolarizacao_tag:
-    #     taxa_escolarizacao_valor = escolarizacao_tag.find_next_sibling("td", class_="lista__valor")
-    #     taxa_escolarizacao = taxa_escolarizacao_valor.find("span").text if taxa_escolarizacao_valor else "N/A"
-    #     print("Taxa de escolarização:", taxa_escolarizacao + "%")
-
-
-    # taxa_escolarizacao = soup.find('span', class_='escolarizacao') 
-    # ideb_anos_iniciais = soup.find('span', class_='ideb')
-    # ideb_anos_finais = soup.find('span', class_='ideb')
-
-    # city_education_info = {
-    #     "url": url,
-    #     "taxa_escolarizacao": taxa_escolarizacao,
-    #     "ideb_anos_iniciais": ideb_anos_iniciais,
-    #     "ideb_anos_finais": ideb_anos_finais,
-    # }
-
-    # JSON.append({"cidade": city_education_info, "escolas": []})
-
-
-def make_schools_request_orders(scheduler: Scheduler, url: str) -> None:
+def make_schools_request_orders(scheduler: Scheduler, url: str, city_field: str) -> None:
     """
     Função que, a partir de uma URL de cidade, prepara os RequestOrders para cada escola dessa cidade
 
     Args:
         scheduler: ponteiro para o Scheduler
         url: URL relativa a cidade
+        city_field: Nome da cidade para que seja repassado para a função get_information_about_school
     """
 
     page = 1
@@ -198,7 +189,7 @@ def make_schools_request_orders(scheduler: Scheduler, url: str) -> None:
 
         for s_url in schools_urls:
             print(f"Escola: {s_url}")
-            new_request_order = RequestOrder(s_url, get_information_about_school)
+            new_request_order = RequestOrder(s_url, get_information_about_school, city_field)
             scheduler.queue_request(new_request_order)
 
         print(f"Encontradas {len(schools_urls)} escolas na página {page} de {search_url}.")
@@ -207,7 +198,7 @@ def make_schools_request_orders(scheduler: Scheduler, url: str) -> None:
         time.sleep(1)  # Intervalo para evitar sobrecarregar o servidor
 
 
-def get_information_about_school(scheduler: Scheduler, url: str) -> None:
+def get_information_about_school(scheduler: Scheduler, url: str, city_field: str) -> None:
     """
     Função que, a partir de uma URL de escola, pega as informações da escola e, ao final,
     escreve no arquivo JSON
@@ -216,12 +207,12 @@ def get_information_about_school(scheduler: Scheduler, url: str) -> None:
         - Nome da escola
         - Nível de adm (municipal, estadual, federal, particular)
         - Nível de educação (infantil, fundamental, médio, superior)
-        - Possui EJA (booleano)?
         - Endereço
 
     Args:
         scheduler: ponteiro para o Scheduler
         url: URL relativa a escola
+        city_field: Nome da cidade para que o JSON seja preenchido na cidade correta
     """
 
     global SCHOOLS, JSON
@@ -257,6 +248,18 @@ def get_information_about_school(scheduler: Scheduler, url: str) -> None:
 
     SCHOOLS += 1
     time.sleep(1)
+
+    with open(JSON_FILE_NAME, "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+
+    for item in json_data:
+        if item["cidade"] == city_field:
+            item["escolas"].append(new_institution)
+
+    # Write back to the file
+    with open(JSON_FILE_NAME, "w", encoding="utf-8") as f:
+        json.dump(json_data, f, ensure_ascii=False, indent=2)
+
     JSON.append(new_institution)
 
 
