@@ -18,9 +18,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 DRIVER = webdriver.Chrome()
 JSON_FILE_NAME = 'cidades.json'
 
-# TODO: Fazer gráficos sobre os dados
-# TODO: Passar pro chatGPT para que ele relacione os dados/ definir aplicação que usaria esses dados
-
 # Número de escolas por cidade
 # Rio das Ostras - RJ -> 107
 # Paranaguá - PR -> 138
@@ -124,8 +121,9 @@ def get_information_about_city_on_ibge(scheduler: Scheduler, url: str, city_fiel
         DRIVER.get(url)
         time.sleep(5)
         page_content = DRIVER.page_source
-        with open('teste.html', "w", encoding="utf-8") as f:
-            f.write(page_content)
+        # Código abaixo apenas para teste
+        # with open('teste.html', "w", encoding="utf-8") as f:
+        #     f.write(page_content)
     except Exception as e:
         print(f"Erro ao acessar a página {url}: {e}")
 
